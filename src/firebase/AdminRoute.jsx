@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './Auth';
 import CircularProgress from "@mui/material/CircularProgress"; // Import CircularProgress
@@ -20,4 +20,15 @@ export const AdminRoute = ({ children }) => {
   }
 
   return children;
+};
+
+
+export const getUserData = async (userId) => {
+  // Mock function: Replace with actual Firestore fetch
+  return { emailVerified: false };
+};
+
+export const updateUserData = async (userId, data) => {
+  // Mock function: Replace with Firestore update logic
+  console.log(`Updating user ${userId} with data:`, data);
 };
