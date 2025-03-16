@@ -9,11 +9,12 @@ import {
   updateProfile,
   sendEmailVerification,
 } from "firebase/auth";
+
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 import { useContext, useEffect, useState, createContext } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useSelector } from 'react-redux';
-
+import { getUserData, updateUserData } from "./AdminRoute"; 
 
 // Your existing Firebase config remains the same
 const firebaseConfig = {
@@ -207,32 +208,41 @@ function useProvideAuth() {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+  const useAuth = (auth) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setLoading(true); // ✅ Ensure loading state is updated at the start
+        
+        if (!firebaseUser) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+  
         try {
           const userData = await getUserData(firebaseUser.uid);
           setUser({ ...firebaseUser, ...userData });
-          
-          // Update email verification status in Firestore
-          if (firebaseUser.emailVerified) {
-            await updateUserData(firebaseUser.uid, {
-              emailVerified: true,
-            });
+  
+          // ✅ Only update Firestore if email verification status changes
+          if (firebaseUser.emailVerified && !userData.emailVerified) {
+            await updateUserData(firebaseUser.uid, { emailVerified: true });
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(firebaseUser);
+          console.error(`[Auth Error] Failed to fetch user data: ${error.message}`);
+          setUser(null); // ✅ Ensures no partial user data is set
+        } finally {
+          setLoading(false); // ✅ Always stops loading, even on failure
         }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+      });
+  
+      return () => unsubscribe(); // ✅ Cleanup on unmount
+    }, [auth]);
+  };
 
-    return () => unsubscribe();
-  }, []);
-
+  
   return {
     user,
     error,
