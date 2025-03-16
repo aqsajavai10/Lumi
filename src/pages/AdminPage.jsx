@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   collection,
   getDocs,
@@ -95,7 +95,7 @@ const AdminPage = () => {
   });
   const [editMode, setEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [setUploadProgress] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [images, setImages] = useState([]);
   const [imageURLs, setImageURLs] = useState([]);
@@ -143,17 +143,17 @@ const AdminPage = () => {
   }, [images]);
 
   const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      setProducts(
-        querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
-    } catch (error) {
-      showSnackbar("Error fetching products", "error");
-    }
-    setLoading(false);
+    const querySnapshot = await getDocs(collection(db, "products"));
+  
+    // Collect all products first (avoids multiple re-renders)
+    const newProducts = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  
+    setProducts(newProducts); // Update state only once
   };
+  
 
   const fetchOrders = async () => {
     setLoading(true);
