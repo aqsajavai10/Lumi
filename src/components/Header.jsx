@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { debounce } from "lodash";
 import {
   fetchAllCategories,
   selectAllCategories,
@@ -147,13 +148,15 @@ const Header = ({ user, signOut }) => {
   const cartItemCount = getItemCount(cartItems);
 
   // Debugging
-  console.log("Cart Items:", cartItems);
-  console.log("Cart Item Count:", cartItemCount);
-
+  if (process.env.NODE_ENV === "development") {
+    console.log("Cart Items:", cartItems);
+    console.log("Cart Item Count:", cartItemCount);
+  }
+  
   // Effects
   useEffect(() => {
     dispatch(fetchAllCategories());
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     const category = searchParams.get("category");
@@ -178,25 +181,30 @@ const Header = ({ user, signOut }) => {
     }
   };
 
-  const handleSearch = (value) => {
-    const searchQuery = new URLSearchParams();
-    if (selectedCategory && selectedCategory !== "all") {
-      searchQuery.set("category", selectedCategory);
-    }
-    if (value) {
-      searchQuery.set("searchTerm", value.toLowerCase());
-    }
-    navigate(`/?${searchQuery.toString()}`);
-
-    // Scroll to products section with a slight delay to ensure DOM update
-    setTimeout(() => {
-      const productsSection = document.getElementById("products");
-      if (productsSection) {
-        productsSection.scrollIntoView({ behavior: "smooth" });
+  const handleSearch = useCallback(
+    debounce((value, selectedCategory, navigate) => {
+      const searchQuery = new URLSearchParams();
+  
+      if (selectedCategory && selectedCategory !== "all") {
+        searchQuery.set("category", selectedCategory);
       }
-    }, 100);
-  };
-
+      if (value) {
+        searchQuery.set("searchTerm", value.toLowerCase());
+      }
+  
+      navigate(`/?${searchQuery.toString()}`);
+    }, 300), // Debounced: waits 300ms before navigating
+    []
+  );
+  
+  // Detect URL changes and scroll to "products" section after navigation
+  useEffect(() => {
+    const productsSection = document.getElementById("products");
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [window.location.search]); // Scrolls only when the URL changes
+  
   const handleProfileClick = (event) => {
     setProfileAnchorEl(event.currentTarget);
   };
